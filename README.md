@@ -1,4 +1,4 @@
-H1 Aaron's arp_responder
+# H1 Aaron's arp_responder
 On my network I have a variety of Espressif ESP8266 modules running
 firmware called Tasmota as well as my own home grown firmware implementations
 of a thermostat and garage door controller written in C. The interface
@@ -14,7 +14,7 @@ and a better solution is pcapy which is a python interface to libpcap. Libpcap
 is ubiquitous.
 
 
-=== REQUIREMENTS
+### H3 REQUIREMENTS
 	- python 3.5.3 (or better)
 	- libpcap-dev (to install pcapy)
 	- python-pcapy (python3 -m pip install pcapy)
