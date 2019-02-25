@@ -1,0 +1,14 @@
+[Unit]
+Description=aaron's arp responder
+After=network-online.target
+
+[Service]
+User=root
+Type=simple
+ExecStart=/usr/bin/python3 /home/aaron/arp_responder/arp_responder.py -fg start
+ExecStop=/usr/bin/python3 /home/aaron/arp_responder/arp_responder.py -fg stop
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
