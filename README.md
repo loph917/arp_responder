@@ -1,4 +1,4 @@
-=== Aaron's arp_responder
+H1 Aaron's arp_responder
 On my network I have a variety of Espressif ESP8266 modules running
 firmware called Tasmota as well as my own home grown firmware implementations
 of a thermostat and garage door controller written in C. The interface
@@ -27,6 +27,7 @@ the requirements. You can simply place arp_responder.py and daemon.py in
 a subdirectory of your choice.
 
 systemd unit file:
+```
 	[Unit]
 	Description=aaron's arp responder
 	After=network-online.target
@@ -41,7 +42,7 @@ systemd unit file:
 
 	[Install]
 	WantedBy=multi-user.target
-
+```
   
 === RUNNING
 Prior to running, the mac_dict variable should be configured to indicate
@@ -50,10 +51,12 @@ mac_dict is a python dictionary. The key is the IP address and value is the
 MAC address that will be in the ARP reply.
 
 example:
+```
 	mac_dict = {"192.168.1.133" : "80:7D:3A:76:F4:B4",
 				"192.168.1.135" : "84:0D:8E:96:0F:D5",
 				"192.168.1.221" : "B4:E6:2D:23:C6:80",
 			   }
+```
 
 To start the responder:
 	sudo ./arp_responder.py start
