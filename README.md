@@ -26,8 +26,7 @@ There are no strict installation requiments except what is noted above in
 the requirements. You can simply place arp_responder.py and daemon.py in
 a subdirectory of your choice.
 
-	systemd unit file:
-	`
+systemd unit file:
 	[Unit]
 	Description=aaron's arp responder
 	After=network-online.target
@@ -42,7 +41,6 @@ a subdirectory of your choice.
 
 	[Install]
 	WantedBy=multi-user.target
-	`
 
   
 === RUNNING
@@ -51,7 +49,7 @@ which IP addresses arp_responder should send ARP replies for. The format of
 mac_dict is a python dictionary. The key is the IP address and value is the
 MAC address that will be in the ARP reply.
 
-	Example:
+example:
 	mac_dict = {"192.168.1.133" : "80:7D:3A:76:F4:B4",
 				"192.168.1.135" : "84:0D:8E:96:0F:D5",
 				"192.168.1.221" : "B4:E6:2D:23:C6:80",
