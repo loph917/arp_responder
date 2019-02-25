@@ -14,6 +14,7 @@ class Daemon:
         self.pidfile = config['pidfile']
         self.logger = config['logger']
         self.foreground = config['foreground']
+        self.quiet = config['quiet']
 
         # setup the signals
         signal.signal(signal.SIGUSR1, self.receive_signal) # dump the packet capture stats
@@ -120,14 +121,14 @@ class Daemon:
                 sys.stderr.write('foreground')
                 pid = self.create_pidfile()
                 message = 'started in foreground pid={}'.format(pid)
-                self.logger.info(message)
-                self.run()
             else:
                 sys.stderr.write('background')
                 pid = self.daemonize()
                 message = 'started daemon pid={}'.format(pid)
-                self.logger.info(message)
-                self.run()
+
+            # say what we are doing and do it!
+            self.logger.info(message)
+            self.run()
 
     def stop(self):
         """Stop the daemon."""

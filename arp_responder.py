@@ -74,8 +74,9 @@ class my_daemon(Daemon):
 
     def dump_stat(self):
         """ Dump statistics about what we've been doing. """
-        message = ', '.join("{!s}={!r}".format(key, val) for (key, val) in sorted(stats.items()))
-        config['logger'].info(message)
+        if not self.quiet:
+            message = ', '.join("{!s}={!r}".format(key, val) for (key, val) in sorted(stats.items()))
+            config['logger'].info(message)
         return
 
 
@@ -87,7 +88,7 @@ class my_daemon(Daemon):
 
 
     def run(self):
-        runSniffer(config)
+        run_sniffer(config)
 
 
 def eth_ntos(mac):
@@ -124,7 +125,6 @@ def decode_eth(eth_data):
 
 def decode_arp(arp_data):
     """ decode the arp data from the packet """
-    #print('a', struct.unpack('!HHBBH6B4s6s4s', arp_data))
     return struct.unpack('!HHBBH6s4s6s4s', arp_data)
 
 
@@ -140,7 +140,7 @@ def build_arp_packet(sender_mac, sender_ip, target_mac, target_ip):
         struct.pack('!6B', *(0x00,)*6), # target hw addr (mac)
         struct.pack('!4B', *socket.inet_aton(target_ip)) # target proto addr (mac)
     ]
-    #print(arp_packet)
+
     return arp_packet
 
 
@@ -159,20 +159,17 @@ def send_arp_packet(sender_mac, sender_ip, target_mac, target_ip,
     else:
         eth_hdr = struct.pack("!6s6sH", eth_ston(sender_mac),
                               eth_ston(src_mac), 0x0806)
-    #print('  oe=', eth_hdr)
-    #arp_pkt = struct.pack("!HHBBH6s4s6s4s", 0x0001, 0x0800, 0x06, 0x04, 0x0002, eth_ston(my_mac), socket.inet_aton(target_ip), eth_ston(sender_mac), socket.inet_aton(sender_ip))
+
     arp_pkt = struct.pack("!HHBBH6s4s6s4s", 0x0001, 0x0800, 0x06, 0x04, 0x0002,
         eth_ston(mac_dict[target_ip]),
         socket.inet_aton(target_ip),
         eth_ston(sender_mac), 
         socket.inet_aton(sender_ip))
-    #print('  oa=', arp_pkt)
     packet = eth_hdr + arp_pkt
-    #print(packet)
     sock.send(packet)
     stats['arp_response_out'] += 1
 
-    # this will ensure the GC frees this up
+    # this will ensure the GC frees this up(?)
     sock.close()
 
 
@@ -195,10 +192,11 @@ def arp_reply():
     return
 
 
-def print_statistics():
-    """ let's print out some statistics we kept while running """
-    message = ', '.join("{!s}={!r}".format(key, val) for (key, val) in sorted(stats.items()))
-    config['logger'].info(message)
+def print_statistics(quiet):
+    if not quiet:
+        """ let's print out some statistics we kept while running """
+        message = ', '.join("{!s}={!r}".format(key, val) for (key, val) in sorted(stats.items()))
+        config['logger'].info(message)
 
     return
         
@@ -216,12 +214,17 @@ def get_program_name():
     return dir_path, progname
 
 def get_logfile(progname):
-    logfile = None
-    logfile = progname + '.log'
-    return logfile
+    """ return a suitable log filename """
+    return progname + '.log'
+
+
+def get_cfgfile(progname):
+    """ return a suitable config filename """
+    return progname + '.cfg'
 
 
 def check_devices(interface):
+    """ make sure pcapy can see the interface """
     devices = pcapy.findalldevs()
     if interface not in devices:
         return False
@@ -230,6 +233,7 @@ def check_devices(interface):
 
 
 def get_interface_mac_address(interface):
+    """ get the mac address of the interface we are using """
     mac_address_file = '/sys/class/net/' + interface + '/address'
     try:
         with open(mac_address_file, 'r') as af:
@@ -241,6 +245,7 @@ def get_interface_mac_address(interface):
     return mac
 
 def logging_add_foreground(config):
+    """ add the foreground handler to the logging instance """
     formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s",
                                   "%Y-%m-%d %H:%M:%S")
 
@@ -270,7 +275,7 @@ def setup_logging(config):
     return logger
 
 
-def runSniffer(config):
+def run_sniffer(config):
     """ run the sniffer """
     SNAPLEN = 2048 # how big of a packet do we want to capture? 
     ARP = 1544 # (0x0806) this is the protocol number in decimal
@@ -292,7 +297,7 @@ def runSniffer(config):
                 if now != lastnow:
                     # is this our interval?
                     if now % config['stat_interval'] == 0: # every 60 seconds emit stats
-                        print_statistics()
+                        print_statistics(config['quiet'])
                         lastnow = now
 
             (header, packet) = cap.next()
@@ -345,38 +350,60 @@ def create_parser(config):
     # build the parser
     parser = argparse.ArgumentParser(description='aaron\'s arp responder (aar)')
     parser.add_argument('cmd', choices=['restart', 'start', 'stop', 'status', 'help'])
-    parser.add_argument('--pidfile', dest='pidfile', action='store',
+    parser.add_argument('-c', '--config', dest='cfgfile', action='store',
+                        default=config['cfgfile'],
+                        help='config file (default: ' + config['cfgfile'] + ')')
+    parser.add_argument('-p', '--pidfile', dest='pidfile', action='store',
                         default=config['pidfile'],
                         help='pid file (default: /tmp/' + config['progname'] + '.pid)')
-    parser.add_argument('--logfile', dest='logfile', action='store',
+    parser.add_argument('-l', '--logfile', dest='logfile', action='store',
                         default=config['logfile'],
-                        help='log file (default: ' + config['logfile'] + '.log)')
+                        help='log file (default: ' + config['logfile'] + ')')
     parser.add_argument('-i', '--int', action='store',
                         default=config['interface'],
                         help='interface to listen on (default: ' + config['interface'] + ')')
     parser.add_argument('-s', '--stat-interval', action='store',
                         default=60,
-                        help='statistics logging interval (default: ' + str(config['stat_interval']) + ')')
+                        help='statistics logging interval (default: ' + str(config['stat_interval']) + 's)')
     parser.add_argument('-fg', '--foreground', action='store_true',
                         default=False,
                         help='run in the foreground (default: False)')
     parser.add_argument('-br', '--broadcast', action='store_true',
                         default=False,
                         help='broadcast arp responses (default: False)')
+    parser.add_argument('-q', '--quiet', action='store_true',
+                        default=False,
+                        help="be quiet and keep the logging minimal (default: False)")
     return parser
+
+
+def read_config_file(cfgfile, config):
+    """ read the configuration file """
+    config_key_list = [ 'pidfile', 'interface', 'foreground', 'logfile',
+        'broadcast_reply', 'stat_interval', 'quiet' ]
+
+    with open(cfgfile) as f:
+        for line in f:
+            if line.startswith('#') or line.startswith(';'):
+                continue
+            key, val = line.strip().split('=', 1)
+            if key in config_key_list:
+                config[key] = val
+        
+    return
 
 
 def handle_args(args, config):
     """ process the arguments """
     # did we get anything useful?
-    
-    config['pidfile']  = args.pidfile
+    config['pidfile'] = args.pidfile
     config['interface'] = args.int
     config['foreground'] = args.foreground
     config['logfile'] = args.logfile
     config['broadcast_reply'] = args.broadcast
     config['stat_interval'] = args.stat_interval
-    
+    config['quiet'] = args.quiet
+
     return
 
 
@@ -434,7 +461,7 @@ def main(config):
     # if we are running in the foreground we need to start the sniffer
     #if config['foreground']:
     #    config['logger'].info('running in foreground.')
-    #    runSniffer(config)
+    #    run_sniffer(config)
 
 
 if __name__ == "__main__":
@@ -465,6 +492,7 @@ if __name__ == "__main__":
     config = {}
     config['dirname'], config['progname'] = get_program_name() # correct progran name
     config['logfile'] = get_logfile(config['dirname'] + '/' + config['progname']) # default log filename
+    config['cfgfile'] = get_cfgfile(config['dirname'] + '/' + config['progname']) # default log filename
     config['interface'] = 'wlan0' # interface to use
     
     sys.exit(main(config))

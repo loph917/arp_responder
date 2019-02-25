@@ -53,9 +53,9 @@ MAC address that will be in the ARP reply.
 example:
 ```
 	mac_dict = {"192.168.1.133" : "80:7D:3A:76:F4:B4",
-        "192.168.1.135" : "84:0D:8E:96:0F:D5",
-        "192.168.1.221" : "B4:E6:2D:23:C6:80",
-        }
+			"192.168.1.135" : "84:0D:8E:96:0F:D5",
+			"192.168.1.221" : "B4:E6:2D:23:C6:80",
+			}
 ```
 
 To start the responder:
@@ -70,9 +70,9 @@ arp_responder running (pid=7602)
 ```
 
 ```
-aaron@raspberrypi:~/arp_responder$ sudo ./arp_responder.py help
+aaron@rasp02:~/arp_responder$ sudo ./arp_responder.py help
 usage: arp_responder.py [-h] [--pidfile PIDFILE] [--logfile LOGFILE] [-i INT]
-                        [-s STAT_INTERVAL] [-fg] [-br]
+                        [-s STAT_INTERVAL] [-fg] [-br] [-q]
                         {restart,start,stop,status,help}
 
 aaron's arp responder (aar)
@@ -83,12 +83,14 @@ positional arguments:
 optional arguments:
   -h, --help            show this help message and exit
   --pidfile PIDFILE     pid file (default: /tmp/arp_responder.pid)
-  --logfile LOGFILE     log file (default: arp_responder.log)
+  --logfile LOGFILE     log file (default:
+                        /home/aaron/arp_responder/arp_responder.log.log)
   -i INT, --int INT     interface to listen on (default: wlan0)
   -s STAT_INTERVAL, --stat-interval STAT_INTERVAL
                         statistics logging interval (default: 60)
   -fg, --foreground     run in the foreground (default: False)
   -br, --broadcast      broadcast arp responses (default: False)
+  -q, --quiet           be quiet and keep the logging minimal (default: False)
 ```
 
 ```
