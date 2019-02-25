@@ -14,7 +14,7 @@ class Daemon:
         self.pidfile = config['pidfile']
         self.logger = config['logger']
         self.foreground = config['foreground']
-        
+
         # setup the signals
         signal.signal(signal.SIGUSR1, self.receive_signal) # dump the packet capture stats
         signal.signal(signal.SIGUSR2, self.receive_signal) # dump the mac dictionary
@@ -65,19 +65,28 @@ class Daemon:
         os.dup2(se.fileno(), sys.stderr.fileno())
     
         # write pidfile
-        atexit.register(self.delpid)
+        pid = self.create_pidfile()
+        sys.stderr.write('deamonize2')
+        return pid
+
+    def create_pidfile(self):
+        # write pidfile
+        atexit.register(self.delete_pidfile)
 
         pid = str(os.getpid())
-        with open(self.pidfile,'w+') as f:
-            f.write(pid + '\n')
-        f.close()
+        try:
+            with open(self.pidfile,'w+') as f:
+                f.write(pid + '\n')
+                f.close()
+        except IOError:
+            pid = None
 
         return pid
-    
-    def delpid(self):
+
+    def delete_pidfile(self):
         os.remove(self.pidfile)
 
-    def chkpid(self):
+    def check_pidfile(self):
         """Checks for the pid file."""
         try:
             with open(self.pidfile, 'r') as pf:
@@ -92,7 +101,7 @@ class Daemon:
         """Start the daemon."""
 
         # Check for a pidfile to see if the daemon already runs
-        pid = self.chkpid()
+        pid = self.check_pidfile()
     
         # is this a restart and not a first run?
         if restart:
@@ -106,13 +115,19 @@ class Daemon:
             sys.stderr.write(message)
             sys.exit(1)
         else:            
-            # Start the daemon
-            pid = self.daemonize()
-            message = 'started daemon pid={}'.format(pid)
-            self.logger.info(message)
-            
-            self.run()
-            #return pid
+            # start in foreground of background?
+            if (self.foreground):
+                sys.stderr.write('foreground')
+                pid = self.create_pidfile()
+                message = 'started in foreground pid={}'.format(pid)
+                self.logger.info(message)
+                self.run()
+            else:
+                sys.stderr.write('background')
+                pid = self.daemonize()
+                message = 'started daemon pid={}'.format(pid)
+                self.logger.info(message)
+                self.run()
 
     def stop(self):
         """Stop the daemon."""
@@ -162,7 +177,7 @@ class Daemon:
 
     def status(self):
         """return the status of the damon"""
-        pid = Daemon.chkpid(self)
+        pid = Daemon.check_pidfile(self)
         if pid:
             print('%s running (pid=%d)' % (self.progname, pid))
         else:

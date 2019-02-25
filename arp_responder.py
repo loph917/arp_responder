@@ -12,7 +12,11 @@ import sys
 import time
 import logging
 from logging.handlers import TimedRotatingFileHandler
-from daemon import Daemon
+try:
+    from daemon import Daemon
+except ImportError:
+    sys.stderr.write("couldn't import class Daemon")
+    sys.exit(1)
 
 
 # some globals (for now)
@@ -26,7 +30,13 @@ stats = {'total_pkts_in':0,        # total number of packets captured
 
 # this is the dictionary that defines the hosts we'll send an
 #   arp resonse for (mostly these are esp8266s)
-mac_dict = {"192.168.1.133" : "80:7D:3A:76:F4:B4",
+mac_dict = {
+            "192.168.1.20" : "44:61:32:F5:24:0B",
+            "192.168.1.21" : "44:61:32:E5:00:47",
+            "192.168.1.22" : "44:61:32:D0:71:94",
+            "192.168.1.101" : "B8:27:EB:EE:AA:F5",
+            "192.168.1.102" : "B8:27:EB:9E:16:AD",
+            "192.168.1.133" : "80:7D:3A:76:F4:B4",
             "192.168.1.135" : "84:0D:8E:96:0F:D5",
             "192.168.1.221" : "B4:E6:2D:23:C6:80",
             "192.168.1.224" : "B4:E6:2D:0A:A8:89",
@@ -195,13 +205,15 @@ def print_statistics():
 def get_program_name():
     """ strip out the basefilename """
     # get the base filename
-    progname = os.path.splitext((sys.argv[0]))[0]
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    basename = os.path.basename(__file__)
+    progname = os.path.splitext(basename)[0]
     
     # but if we started with ./ remove it
     if progname[0:2] == './':
         progname = progname[2:]
         
-    return progname
+    return dir_path, progname
 
 def get_logfile(progname):
     logfile = None
@@ -338,7 +350,7 @@ def create_parser(config):
                         help='pid file (default: /tmp/' + config['progname'] + '.pid)')
     parser.add_argument('--logfile', dest='logfile', action='store',
                         default=config['logfile'],
-                        help='log file (default: ' + config['progname'] + '.log)')
+                        help='log file (default: ' + config['logfile'] + '.log)')
     parser.add_argument('-i', '--int', action='store',
                         default=config['interface'],
                         help='interface to listen on (default: ' + config['interface'] + ')')
@@ -402,9 +414,8 @@ def main(config):
 
     # the various commands to control the daemon
     if cmd == 'start':
-        if not config['foreground']:
-            pid = daemon.start()
-            config['logger'].debug('starting daemon')
+        pid = daemon.start()
+        config['logger'].debug('starting daemon')
     elif cmd == 'stop':
         daemon.stop()
         sys.exit(0)
@@ -421,9 +432,9 @@ def main(config):
         sys.exit(0)
     
     # if we are running in the foreground we need to start the sniffer
-    if config['foreground']:
-        config['logger'].info('running in foreground.')
-        runSniffer(config)
+    #if config['foreground']:
+    #    config['logger'].info('running in foreground.')
+    #    runSniffer(config)
 
 
 if __name__ == "__main__":
@@ -452,8 +463,8 @@ if __name__ == "__main__":
 
     # create some 'globals'
     config = {}
-    config['progname'] = get_program_name() # correct progran name
-    config['logfile'] = get_logfile(config['progname']) # default log filename
+    config['dirname'], config['progname'] = get_program_name() # correct progran name
+    config['logfile'] = get_logfile(config['dirname'] + '/' + config['progname']) # default log filename
     config['interface'] = 'wlan0' # interface to use
     
-    main(config)
+    sys.exit(main(config))
