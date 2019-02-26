@@ -8,7 +8,7 @@ JQuery as well as using MQTT to talk to Home Assistant.
 Due to what might be a bug in relation to the ESP8266 firwmare in the LwIP
 protocol stack it appears that the ESP8266 will not respond to ARP queries
 consistently. This has been discussd in the various ESP8266 forums with some
-work arounds provided. Someone suggested a arp proxy for the ESP8266 devices
+work arounds provided. Someone suggested a arp responder/proxy for the ESP8266 devices
 and provided a simple soluation based on scapy. Scapy is a bit heavy for this
 and a better solution is pcapy which is a python interface to libpcap. Libpcap
 is ubiquitous.
