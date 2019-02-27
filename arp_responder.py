@@ -322,12 +322,12 @@ def run_sniffer(config):
                 continue
             else:
                 # if we see anything oter than 1 or 2 for an opcode, ignore it
+                arp_data = decode_arp(packet[eth_length:(arp_length + eth_length)])
                 arp_op = arp_data[4]
                 if arp_op > 2:
                     continue
                 
                 # this is the arp protocol data
-                arp_data = decode_arp(packet[eth_length:(arp_length + eth_length)])
                 sender_mac = eth_ntos(arp_data[5])
                 sender_ip = socket.inet_ntoa(arp_data[6])
                 target_mac = eth_ntos(arp_data[7])
@@ -349,7 +349,7 @@ def run_sniffer(config):
                     pass
 
     except KeyboardInterrupt:
-        print_statistics()
+        print_statistics(config['quiet'])
         sys.exit(0)
 
 def create_parser(config):
