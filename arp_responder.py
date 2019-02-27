@@ -305,7 +305,7 @@ def run_sniffer(config):
 
             (header, packet) = cap.next()
             stats['total_pkts_in'] += 1
-            # this is the length of the ethernet header
+            # length of the ethernet and arp headers
             eth_length = 14
             arp_length = 28
             
@@ -321,13 +321,20 @@ def run_sniffer(config):
                 stats['non_arp_pkts_in'] += 1
                 continue
             else:
+                # if we see anything oter than 1 or 2 for an opcode, ignore it
+                arp_op = arp_data[4]
+                if arp_op > 2:
+                    continue
+                
                 # this is the arp protocol data
                 arp_data = decode_arp(packet[eth_length:(arp_length + eth_length)])
                 sender_mac = eth_ntos(arp_data[5])
                 sender_ip = socket.inet_ntoa(arp_data[6])
                 target_mac = eth_ntos(arp_data[7])
                 target_ip = socket.inet_ntoa(arp_data[8])
-                if arp_data[4] == 1: # arp request
+
+                # what do we want to do with the ARP packet?
+                if arp_op == 1: # arp request
                     stats['arp_requests_in'] = stats['arp_requests_in'] + 1
                     # debugging here
                     #print('who has %s (%s)? tell %s (%s)' % (target_ip, target_mac, sender_ip, sender_mac))
@@ -336,7 +343,7 @@ def run_sniffer(config):
                     if arp_request(target_ip, sender_ip):
                         send_arp_packet(sender_mac, sender_ip, target_mac, target_ip,
                                         config['my_mac'], config['broadcast_reply'])
-                elif arp_data[4] == 2: # arp reply, we aren't doing anything with these
+                elif arp_op == 2: # arp reply, we aren't doing anything with these
                     arp_reply()
                 else:
                     pass
