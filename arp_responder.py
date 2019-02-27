@@ -286,7 +286,10 @@ def run_sniffer(config):
     # this is the capture object
     #   in hindsight i could have filtered for arp, but what fun is that?
     cap = pcapy.open_live(config['interface'], SNAPLEN, 1, 0)
-
+    if config['filter']:
+        cap_filter = 'arp'
+        cap.setfilter(cap_filter)
+    
     # the big bad loop
     try:
         while True:
@@ -374,6 +377,9 @@ def create_parser(config):
     parser.add_argument('-q', '--quiet', action='store_true',
                         default=False,
                         help="be quiet and keep the logging minimal (default: False)")
+    parser.add_argument('-pf', '--filter', action='store_true',
+                        default=False,
+                        help="use a bpf filter to receive only ARP packets (default: False)")
     return parser
 
 
@@ -403,6 +409,7 @@ def handle_args(args, config):
     config['broadcast_reply'] = args.broadcast
     config['stat_interval'] = args.stat_interval
     config['quiet'] = args.quiet
+    config['filter'] = args.filter
 
     return
 
